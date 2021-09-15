@@ -1,13 +1,5 @@
 const Discord = require("discord.js");
 const { prefix, token } = require("./config.json");
-const ytdl = require('ytdl-core');
-const {
-	AudioPlayerStatus,
-	StreamType,
-	createAudioPlayer,
-	createAudioResource,
-	joinVoiceChannel,
-} = require('@discordjs/voice');
 
 const client = new Discord.Client({
 	intents: [
@@ -17,6 +9,16 @@ const client = new Discord.Client({
 	],
 })
 
+const fs = require('fs');
+
+client.commands = new Discord.Collection();
+
+const commandFiles = fs.readdirSync('./commands/').filter(file => file.endsWith('.js'));
+for(const file of commandFiles){
+  const command = require(`./commands/${file}`);
+
+  client.commands.set(command.name, command);
+}
 
 client.once("ready", () => {
   console.log("Ready!");
@@ -36,27 +38,7 @@ client.on("messageCreate", message => {
     const command = args.shift().toLowerCase();
 
     if (command === 'play'){
-        let song = args.join('');
-        console.log(song);
-        const voiceChannel = message.member.voice.channel;
-
-        const connection = joinVoiceChannel({
-            channelId: voiceChannel.id,
-            guildId: voiceChannel.guild.id,
-            adapterCreator: voiceChannel.guild.voiceAdapterCreator,
-        });
-
-        const stream = ytdl(song, {filter: 'audioonly' });
-        const resource = createAudioResource(stream, { inputType: StreamType.Arbitrary });
-        const player = createAudioPlayer();
-
-        player.play(resource);
-        connection.subscribe(player);
-
-        player.on(AudioPlayerStatus.Idle, () => connection.destroy());
-
-        console.log("done");
-
+        client.commands.get('play').execute(message, args);
 
     }
 })
